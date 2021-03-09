@@ -1,7 +1,7 @@
 <?php
 
 /**
- * OpenEnvia
+ * LibreDTE
  * Copyright (C) SASCO SpA (https://sasco.cl)
  *
  * Este programa es software libre: usted puede redistribuirlo y/o
@@ -24,11 +24,11 @@
 namespace website\Dte;
 
 use GuzzleHttp\Psr7\Response;
-use \sasco\OpenEnvia\Estado;
+use \sasco\LibreDTE\Estado;
 
 /**
  * Clase que permite interacturar con el envío de boletas al SII mediante
- * las funcionalidades extras de OpenEnvia.
+ * las funcionalidades extras de LibreDTE.
  * Se provee como una clase aparte, porque es una funcionalidad que por defecto
  * viene desactivada.
  *
@@ -59,7 +59,7 @@ class Utility_EnvioBoleta
     ];
 
     private static function setserver(){
-        $certificacion = \sasco\OpenEnvia\Sii::getAmbiente();
+        $certificacion = \sasco\LibreDTE\Sii::getAmbiente();
         if($certificacion==0){
             self::$URL=self::$PRODUCCION_1;
             self::$URLEnvio=self::$PRODUCCION_2;
@@ -120,9 +120,9 @@ class Utility_EnvioBoleta
         $resp=curl_exec($ch);
         $respon=new \SimpleXMLElement($resp, LIBXML_COMPACT);
         if ($resp===false or (string)$respon->xpath('/SII:RESPUESTA/SII:RESP_HDR/ESTADO')[0]!=='00') {
-            \sasco\OpenEnvia\Log::write(
-                \sasco\OpenEnvia\Estado::AUTH_ERROR_SEMILLA,
-                \sasco\OpenEnvia\Estado::get(\sasco\OpenEnvia\Estado::AUTH_ERROR_SEMILLA)
+            \sasco\LibreDTE\Log::write(
+                \sasco\LibreDTE\Estado::AUTH_ERROR_SEMILLA,
+                \sasco\LibreDTE\Estado::get(\sasco\LibreDTE\Estado::AUTH_ERROR_SEMILLA)
             );
             return false;
         }
@@ -142,9 +142,9 @@ class Utility_EnvioBoleta
     private static function getTokenRequest($seed, $Firma = [])
     {   
          if (is_array($Firma))
-            $Firma = new \sasco\OpenEnvia\FirmaElectronica($Firma);
+            $Firma = new \sasco\LibreDTE\FirmaElectronica($Firma);
         $seedSigned = $Firma->signXML(
-            (new \sasco\OpenEnvia\XML())->generate([
+            (new \sasco\LibreDTE\XML())->generate([
                 'getToken' => [
                     'item' => [
                         'Semilla' => $seed
@@ -153,9 +153,9 @@ class Utility_EnvioBoleta
             ])->saveXML()
         );
         if (!$seedSigned) {
-            \sasco\OpenEnvia\Log::write(
-                \sasco\OpenEnvia\Estado::AUTH_ERROR_FIRMA_SOLICITUD_TOKEN,
-                \sasco\OpenEnvia\Estado::get(\sasco\OpenEnvia\Estado::AUTH_ERROR_FIRMA_SOLICITUD_TOKEN)
+            \sasco\LibreDTE\Log::write(
+                \sasco\LibreDTE\Estado::AUTH_ERROR_FIRMA_SOLICITUD_TOKEN,
+                \sasco\LibreDTE\Estado::get(\sasco\LibreDTE\Estado::AUTH_ERROR_FIRMA_SOLICITUD_TOKEN)
             );
             return false;
         }
@@ -183,7 +183,7 @@ class Utility_EnvioBoleta
         $requestFirmado = self::getTokenRequest($semilla, $Firma);
         if (!$requestFirmado) return false;
        $header = [
-        'User-Agent: Mozilla/4.0 (compatible; PROG 1.0; OpenEnvia)',
+        'User-Agent: Mozilla/4.0 (compatible; PROG 1.0; LibreDTE)',
         'Referer: https://libredte.cl',
         'Content-type: application/xml'
         ];
@@ -195,9 +195,9 @@ class Utility_EnvioBoleta
         $resp=curl_exec($ch);
         $respon=new \SimpleXMLElement($resp, LIBXML_COMPACT);
         if ($resp===false or (string)$respon->xpath('/SII:RESPUESTA/SII:RESP_HDR/ESTADO')[0]!=='00') {
-            \sasco\OpenEnvia\Log::write(
-                \sasco\OpenEnvia\Estado::AUTH_ERROR_TOKEN,
-                \sasco\OpenEnvia\Estado::get(\sasco\OpenEnvia\Estado::AUTH_ERROR_TOKEN)
+            \sasco\LibreDTE\Log::write(
+                \sasco\LibreDTE\Estado::AUTH_ERROR_TOKEN,
+                \sasco\LibreDTE\Estado::get(\sasco\LibreDTE\Estado::AUTH_ERROR_TOKEN)
             );
            
             return false;
@@ -234,7 +234,7 @@ class Utility_EnvioBoleta
         if ($gzip) {
             $dte = gzencode($dte);
             if ($dte===false) {
-                \sasco\OpenEnvia\Log::write(Estado::ENVIO_ERROR_GZIP, Estado::get(Estado::ENVIO_ERROR_GZIP));
+                \sasco\LibreDTE\Log::write(Estado::ENVIO_ERROR_GZIP, Estado::get(Estado::ENVIO_ERROR_GZIP));
                 return false;
             }
         }
@@ -257,7 +257,7 @@ class Utility_EnvioBoleta
         // crear sesión curl con sus opciones
         $curl = curl_init();
         $header = [
-            'User-Agent: Mozilla/4.0 (compatible; PROG 1.0; OpenEnvia)',
+            'User-Agent: Mozilla/4.0 (compatible; PROG 1.0; LibreDTE)',
             'Referer: https://libredte.cl',
             'Cookie: TOKEN='.$token,
         ];
@@ -276,7 +276,7 @@ class Utility_EnvioBoleta
         if (!self::$verificar_ssl) {
             if (self::getAmbiente()==self::PRODUCCION) {
                 $msg = Estado::get(Estado::ENVIO_SSL_SIN_VERIFICAR);
-                \sasco\OpenEnvia\Log::write(Estado::ENVIO_SSL_SIN_VERIFICAR, $msg, LOG_WARNING);
+                \sasco\LibreDTE\Log::write(Estado::ENVIO_SSL_SIN_VERIFICAR, $msg, LOG_WARNING);
             }
             curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
         }
@@ -292,10 +292,10 @@ class Utility_EnvioBoleta
         // verificar respuesta del envío y entregar error en caso que haya uno
         if (!$response or $response=='Error 500') {
             if (!$response) {
-                \sasco\OpenEnvia\Log::write(Estado::ENVIO_ERROR_CURL, Estado::get(Estado::ENVIO_ERROR_CURL, curl_error($curl)));
+                \sasco\LibreDTE\Log::write(Estado::ENVIO_ERROR_CURL, Estado::get(Estado::ENVIO_ERROR_CURL, curl_error($curl)));
             }
             if ($response=='Error 500') {
-                \sasco\OpenEnvia\Log::write(Estado::ENVIO_ERROR_500, Estado::get(Estado::ENVIO_ERROR_500));
+                \sasco\LibreDTE\Log::write(Estado::ENVIO_ERROR_500, Estado::get(Estado::ENVIO_ERROR_500));
             }
             return false;
         }
@@ -344,10 +344,10 @@ class Utility_EnvioBoleta
         // verificar respuesta del envío y entregar error en caso que haya uno
         if (!$response or $response=='Error 500') {
             if (!$response) {
-                \sasco\OpenEnvia\Log::write(Estado::ENVIO_ERROR_CURL, Estado::get(Estado::ENVIO_ERROR_CURL, curl_error($curl)));
+                \sasco\LibreDTE\Log::write(Estado::ENVIO_ERROR_CURL, Estado::get(Estado::ENVIO_ERROR_CURL, curl_error($curl)));
             }
             if ($response=='Error 500') {
-                \sasco\OpenEnvia\Log::write(Estado::ENVIO_ERROR_500, Estado::get(Estado::ENVIO_ERROR_500));
+                \sasco\LibreDTE\Log::write(Estado::ENVIO_ERROR_500, Estado::get(Estado::ENVIO_ERROR_500));
             }
             return false;
         }
@@ -399,10 +399,10 @@ class Utility_EnvioBoleta
         // verificar respuesta del envío y entregar error en caso que haya uno
         if (!$response or $response=='Error 500') {
             if (!$response) {
-                \sasco\OpenEnvia\Log::write(Estado::ENVIO_ERROR_CURL, Estado::get(Estado::ENVIO_ERROR_CURL, curl_error($curl)));
+                \sasco\LibreDTE\Log::write(Estado::ENVIO_ERROR_CURL, Estado::get(Estado::ENVIO_ERROR_CURL, curl_error($curl)));
             }
             if ($response=='Error 500') {
-                \sasco\OpenEnvia\Log::write(Estado::ENVIO_ERROR_500, Estado::get(Estado::ENVIO_ERROR_500));
+                \sasco\LibreDTE\Log::write(Estado::ENVIO_ERROR_500, Estado::get(Estado::ENVIO_ERROR_500));
             }
             return false;
         }
